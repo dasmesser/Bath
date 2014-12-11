@@ -32,9 +32,15 @@ def get_data_pluggins():
 PLUGGIN_NOT_AVAILABLE = 'The pluggin you selected is not available. Please select a valid pluggin'
 NO_NEWICK_TREE = 'No Newick Tree detected. Go back to the index page and try again'
 NO_PLUGGIN_SELECTED = 'No pluggin was selected. Please go back to the index page and try again'
+NEWICK_TREE_FORMAT_ERROR = 'Your Newick tree has a format error. Please double check your parenthesis and commas'
+SEPARATED_BY_SPACE_ERROR = 'Your request seem to be missing a comma between taxa names or a '_' between a compound taxa name. Return to the index and check your query'
 
 def get_input_validation_errors():
-    return []
+    return [PLUGGIN_NOT_AVAILABLE,
+            NO_NEWICK_TREE,
+            NO_PLUGGIN_SELECTED,
+            NEWICK_TREE_FORMAT_ERROR,
+            SEPARATED_BY_SPACE_ERROR]
             
 
 NO_SPECIES_BY_PROVIDED_NAME = 'no_species_by_provided_name'
