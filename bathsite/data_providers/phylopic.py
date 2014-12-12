@@ -162,7 +162,8 @@ class GetImageThread(threading.Thread):
                                             image_url = 'http://phylopic.org' + unicodedata.normalize('NFKD', inner_element['url']).encode('ascii', 'ignore')
                                             
                                             if self.multiple_results:
-                                                img_list.append(image_url)
+                                                if not(image_url in img_list) :
+                                                    img_list.append(image_url)
                                             else:
                                                 break
                                         

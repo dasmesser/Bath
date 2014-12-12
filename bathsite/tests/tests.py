@@ -70,7 +70,18 @@ class Tests(TestCase):
         and (response.content.find('4b1f7a58-8713-4d6e-a130-4c8a1ac2f749') != -1)
         and (response.content.find('20da6c7c-2584-4cee-921b-ebd09384567b') != -1))
         
-        
+        #Phylopic multiple image regresion
+        response = self.c.get('/multiple_results/?input=(((Walrus,%20Homo_sapiens)%20(Black_bear,%20Giant_panda)),%20(fox))&data_source=Phylopic')
+        self.assertEqual(response.status_code, 200)
+        #First, check if all the images were found
+        self.assertTrue((response.content.find('c089caae-43ef-4e4e-bf26-973dd4cb65c5.256.png') != -1) 
+        and (response.content.find('9c6af553-390c-4bdd-baeb-6992cbc540b1.512.png') != -1)
+        and (response.content.find('2b4c32f6-99d0-43ba-9180-8013aa5bccd2.256.png') != -1)
+        and (response.content.find('20da6c7c-2584-4cee-921b-ebd09384567b.512.png') != -1)
+        and (response.content.find('51b1b6e4-129d-41a6-bbbd-c3fab459c25f.256.png') != -1))
+        #Second, check there where no repeated images
+        self.assertTrue((response.content.count('c089caae-43ef-4e4e-bf26-973dd4cb65c5.64.png') == 1)
+        and (response.content.count('16cfde1b-d577-4de8-82b9-62b760aacba5.64.png') == 1))
         
         
         
