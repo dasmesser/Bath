@@ -25,3 +25,21 @@ class CachedURL(models.Model):
     database = models.CharField(max_length = 100)
     url = models.CharField(max_length = 500)
     date = models.DateTimeField(default=timezone.now)
+
+class ImageDataBase(models.Model):
+	name = models.CharField(max_length = 200)
+
+class QueryForm(models.Model):
+	name = models.CharField(max_length = 200)
+
+class QueryHistory(models.Model):
+	form_source = models.ForeignKey(QueryForm)
+	created = models.DateTimeField(default=timezone.now)
+	query_string = models.TextField()
+
+class LocalImage(models.Model):
+	url = models.CharField(max_length = 500)
+	local_file_name = models.CharField(max_length = 200)
+	last_modified = models.DateTimeField(default=timezone.now)
+
+

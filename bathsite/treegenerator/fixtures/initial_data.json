@@ -1,0 +1,23 @@
+[
+  {
+    "model": "treegenerator.ImageDataBase",
+    "pk" : 1,
+    "fields" : {
+      "name" : "Phylopic"
+    }
+  },
+  {
+    "model": "treegenerator.ImageDataBase",
+    "pk" : 2,
+    "fields" : {
+      "name" : "EoL"
+    }
+  },
+  {
+    "model" : "treegenerator.QueryForm",
+    "pk" : 1,
+    "fields" : {
+      "name" : "Newick tree"
+    }
+  }
+]
