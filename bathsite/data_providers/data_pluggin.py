@@ -17,7 +17,7 @@ class DataPluggin(object):
         return
     
     def get_all_images(self, species):
-        self.get_first_image_specific_implementation(species)
+        self.get_all_images_specific_implementation(species)
     
     @abc.abstractmethod
     def get_all_images_specific_implementation(self, species):

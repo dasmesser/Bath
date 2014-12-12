@@ -17,7 +17,7 @@ class PhylopicPluggin(data_pluggin.DataPluggin):
         threadNumber = min(10, len(species))
 
         for i in range(threadNumber) :
-            t = GetImageThread(self.img_list, self.err_list, lock, queue, i)
+            t = GetImageThread(self.img_list, self.err_list, lock, queue, False, i)
             t.setDaemon(True)
             t.start()
 
@@ -26,90 +26,31 @@ class PhylopicPluggin(data_pluggin.DataPluggin):
             queue.put(sp)
         queue.join()
     
-    def get_all_images_specific_implementation(self, species, index):
-        #TODO move to threads like other method
-        #returns a list of all the urls for the species found in the source
-        (return_status, json_uid) = self.get_species_uid(species)
-        
-        if not(return_status):
-            self.err_list[index] = json_uid
-            return
-        else:
-            list = json_uid['result']
-            uid_list = []
-            for element in list:
-                if element['illustrated']:
-                    #for some reason the uid comes in unicode type instead of str,
-                    #so a conversion is needed
-                    uid = element['canonicalName']['uid']
-                    uid = unicodedata.normalize('NFKD', uid).encode('ascii', 'ignore')
-                    uid_list.append(uid)
-                    
-            if len(uid_list) == 0:
-                self.err_list[index] = constants.NO_IMAGES_FOR_SPECIES
-                return
-            else:
-                img_list = []
-                img_ids = {}
-                
-                for uid in uid_list:
-                    url = 'http://phylopic.org/api/a/name/' + uid + '/images?options=pngFiles'
-                    json_img = ''
-                    
-                    i = 0
-                    #Se intenta completar 3 veces la conexion
-                    while True:
-                        try:
-                            json_img = json.load(urllib2.urlopen(url))
-                            break
-                        except URLError:
-                            if i < 3:
-                                i = i + 1
-                            else:
-                                self.err_list[index] = constants.CONNECTION_ERROR
-                                return 
-                        except:
-                            self.err_list[index] = constants.JSON_ERROR
-                            return
-                    
-                    if json_img['success']:
-                        list = json_img['result']['same']
-                        for element in list:
-                            
-                            inner_list = element['pngFiles']
-                            
-                            #Phylopic has (as far as I have experimented) 5 resolution sizes for every image, which are enumerated
-                            #consecutivly. The format is the same for the 5 images <image_id>.<size>.png
-                            #This loop eliminates the repeated images, leaving only the largest one
-                            
-                            for elem in inner_list:
-                                img = unicodedata.normalize('NFKD', elem['url']).encode('ascii', 'ignore')
-                                img_key = img.split('.')[0]
-                                try:
-                                    img_size = int(float(img.split('.')[1]))
-                                
-                                    if img_ids.has_key(img_key):
-                                        if img_ids[img_key] < img_size:
-                                            img_ids[img_key] = img_size
-                                    else:
-                                        img_ids[img_key] = img_size
-                                except:
-                                    continue
-                            
-                for k, v in img_ids.items():
-                    img_list.append('http://phylopic.org' + k + '.' + str(v) + '.png')
-                
-                self.img_list[index] = img_list
-                return
+    def get_all_images_specific_implementation(self, species):
+        #returns the url of the first image of the species found in the source
+        lock = threading.Lock()
+        queue = Queue.Queue()
+        threadNumber = min(10, len(species))
+
+        for i in range(threadNumber) :
+            t = GetImageThread(self.img_list, self.err_list, lock, queue, True, i)
+            t.setDaemon(True)
+            t.start()
+
+        #populate the queue
+        for sp in species :
+            queue.put(sp)
+        queue.join()
 
 class GetImageThread(threading.Thread):
 
-    def __init__(self, images, errors, lock, queue, id=0):
+    def __init__(self, images, errors, lock, queue, multiple_results, id=0):
         threading.Thread.__init__(self)
         self.images = images
         self.errors = errors
         self.lock = lock
         self.queue = queue
+        self.multiple_results = multiple_results
         self.id = id
 
     def get_species_uid(self, species):
@@ -178,6 +119,8 @@ class GetImageThread(threading.Thread):
                             self.queue.task_done()
                             continue # To the main while
                         else:
+                            img_list = []
+                        
                             for uid in uids :
                                 url = 'http://phylopic.org/api/a/name/' + uid + '/images?options=pngFiles'
                                 json_img = ''
@@ -216,15 +159,25 @@ class GetImageThread(threading.Thread):
                                         pngFiles = element['pngFiles']
                                         for inner_element in pngFiles:
                                             #for each image there are always versions in different sizes (64, 128, 256, 512 and 1024).
-                                            #The first enumerated image is always the size 64 version, so we just replace the image version before the return
                                             image_url = 'http://phylopic.org' + unicodedata.normalize('NFKD', inner_element['url']).encode('ascii', 'ignore')
+                                            
+                                            if self.multiple_results:
+                                                img_list.append(image_url)
+                                            else:
+                                                break
+                                        
+                                        if self.multiple_results:
+                                            continue
+                                        elif not(image_url is None) :
                                             break
-                                        if not image_url is None :
-                                            break
-                                if not image_url is None :
+                                            
+                                if self.multiple_results:
+                                    continue
+                                elif not(image_url is None):
                                     break
 
-                            if image_url is None : #No image found, load an error
+                            if ((self.multiple_results and not(img_list))
+                                or (not(self.multiple_results) and image_url is None)) : #No image found, load an error
                                 with self.lock :
                                     self.errors[species] = constants.NO_IMAGES_FOR_SPECIES
                                     self.images[species] = image_url
@@ -234,7 +187,10 @@ class GetImageThread(threading.Thread):
                                 print("Endind task, success {}".format(species))
                                 with self.lock:
                                     self.errors[species] = None
-                                    self.images[species] = image_url
+                                    if self.multiple_results :
+                                        self.images[species] = img_list
+                                    else :
+                                        self.images[species] = image_url
                                 self.queue.task_done()
                                 continue # To the main while
                 except Exception as ex :

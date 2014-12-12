@@ -36,7 +36,7 @@ def result(request):
     
     cache = CacheController()
     cachedSpecies, input_array = cache.tryCache(input_array, data_source)
-    data_pluggin.get_all_images(input_array)
+    data_pluggin.get_first_image(input_array)
     
     for k in data_pluggin.img_list.keys():
         if(data_pluggin.img_list[k] == None):
@@ -125,10 +125,6 @@ def argument_validation(request):
 def redirection(error_list, img_list, species_list, data_source, request, no_errors_page):
     errors_present = False
     
-    print 'Error list len: ' + str(len(error_list))
-    print 'Img list len: ' + str(len(img_list))
-    print 'Species list len: ' + str(len (species_list))
-    
     for species in  error_list.keys():
         if not error_list[species] is None :
             errors_present = True
@@ -160,8 +156,6 @@ def redirection(error_list, img_list, species_list, data_source, request, no_err
         img_results = []
         for i in range(input_number):
             img_results.append((species_list[i].replace(' ', '_'), img_list[species_list[i]]))
-
-        print img_results
             
         context = {'result':        img_results,
                     'data':         data_source}
